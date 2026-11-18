@@ -118,11 +118,53 @@ See [RULES.md](RULES.md) for the full list.
 
 ## Your project
 
-_Replace this section with your project README:_
-- **Team:**
-- **Track:**
-- **Problem:** who faces it and why it happens
-- **What we built:** the core workflow
-- **The hardest part:** how we solved it
-- **How to run it:**
-- **Demo / screenshots:**
+# CrisisPulse
+
+**Team:** veretas (Vishesh Dahiya, Sehaj Preet Singh) · **Track:** Build for the Physical World (`physical-world`)
+
+### Problem
+In the first hours after an earthquake, cyclone or flood, the people who know where others are trapped are the survivors and bystanders on the ground. Control rooms instead get a flood of phone calls, WhatsApp forwards and social posts: unstructured, duplicated and with no reliable location. Twenty people reporting the same collapsed building look like twenty incidents, while one elderly person pinned under a wall in a quiet street gets lost in the noise. Coordinators can't answer the questions that decide where a rescue team goes first: *where are people trapped, how many, and are children among them?*
+
+### What we built
+1. **Mobile app (Android + iOS, Expo).** Anyone can send a geotagged report in under a minute: what happened, free text, whether it is about *themselves* or *others they can see*, people / trapped / injured counts, children present, needs (rescue, medical, water…) and up to 3 photos. Reports are saved on the phone first and sent automatically when signal returns (offline outbox, dedupe-safe retries).
+2. **AI worker (runs locally on a Mac with Ollama, no cloud AI).** For every report it extracts structured facts with an LLM (`qwen2.5:7b-instruct`, JSON-schema output), embeds the text (`nomic-embed-text`), groups reports into incident areas, computes the numbers, and writes a situation report for each area.
+3. **Command dashboard (web, on the Mac).** Heat map of reports, incident areas coloured by severity with trapped counts, an AI situation report per area (what is happening, trapped estimate vs self-reported, children, injured, hazards, needs), status workflow (new → team dispatched → resolved), and every individual report inside an area with filters (trapped / children / injured / first-hand) and its exact pin on the map.
+
+```
+phone app ──insert──▶ Supabase (Postgres + PostGIS + pgvector, RLS, private photo bucket, realtime)
+                          ▲                 │ realtime
+              read/write  │                 ▼
+          AI worker (Mac + Ollama)     Command dashboard (Mac browser)
+```
+
+### The hardest part: turning noisy crowd reports into numbers a rescuer can trust
+- **Clustering by place *and* meaning.** DBSCAN where two reports are neighbours only if they are within 500 m **and** semantically similar (embedding cosine), or practically on the same spot (≤ 50 m). A building collapse and a transformer fire 250 m apart on the same street stay separate incidents; thirty descriptions of one collapse merge into one.
+- **Never hide a lone emergency.** A single report with someone trapped or urgency ≥ 4 becomes its own incident area even if nobody else reported it (the 71-year-old pinned under a wall in Sector 56 in our demo).
+- **No double counting.** Numbers are computed in code, never by the LLM:
+  - *First-hand* reports ("we are 3, stuck in the basement") are different people, so they are **summed**, after merging duplicates (same spot + near-identical text = the same family sending twice; take the max).
+  - *Witness* reports ("about 6 people trapped") describe the same victims many times, so they are **never summed**; we take their upper quartile.
+  - The area's estimate is `max(first-hand total, witness estimate)`, and the dashboard shows both "trapped (est.)" and "self-reported".
+- **The reporter beats the model.** Checkbox answers from the phone always override what the LLM inferred; the LLM fills in the gaps from free text. Negations ("no injuries") are handled in the offline fallback.
+- **Stable incidents.** Clusters keep their id between runs (matched by member overlap), so a coordinator's "team dispatched" status survives re-clustering, and only areas whose members changed are re-summarised.
+- **Works without the cloud AI and without signal.** If Ollama is down, a keyword extractor and topic vectors keep the pipeline running; phones queue reports offline.
+
+### How to run it
+
+**Quick demo (no accounts needed)**
+```bash
+npm install
+npm run demo        # AI pipeline on a synthetic M6.4 Gurugram earthquake (≈185 reports)
+npm run dashboard   # open http://localhost:5173
+npm test            # clustering + counting tests
+```
+With [Ollama](https://ollama.com) running (`ollama pull qwen2.5:7b-instruct && ollama pull nomic-embed-text`) the demo uses real LLM extraction, embeddings and summaries; without it, the keyword fallback is used.
+
+**Full live setup**
+1. Create a Supabase project, run `supabase/migrations/0001_init.sql` in the SQL editor, enable **Anonymous sign-ins** (phones) and **Email** (coordinators).
+2. Create a coordinator user, then: `insert into dashboard_admins (user_id) select id from auth.users where email = 'you@example.com';`
+3. Copy each `.env.example` to `.env`: `apps/worker` (URL + service-role key, Mac only), `apps/dashboard` (URL + anon key), `apps/mobile` (URL + anon key).
+4. `npm run worker` (leave running), `npm run dashboard`, `npm run mobile` and scan the QR code with Expo Go on Android or iOS. Optional: `npm run seed` loads the synthetic earthquake.
+
+**Repo layout:** `apps/mobile` (Expo app), `apps/worker` (AI pipeline: `extract.ts`, `cluster.ts`, `aggregate.ts`, `summarise.ts`), `apps/dashboard` (Vite + React + MapLibre), `packages/shared` (types + schemas), `supabase/migrations` (schema + row-level security).
+
+**Privacy:** reports are never public. Phones can insert reports and read only their own; only coordinators in `dashboard_admins` can read reports, clusters and photos (row-level security). Photos are in a private bucket and shown through short-lived signed URLs. The AI runs on the coordinator's own machine.
