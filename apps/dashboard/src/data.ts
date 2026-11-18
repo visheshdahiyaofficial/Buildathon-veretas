@@ -8,7 +8,7 @@ const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const LIVE = Boolean(URL_ && KEY);
 /** Local mode server (npm run local). Tried before falling back to the static demo file. */
 // On a hosted https site (e.g. Vercel) there is no local server to try: go straight to demo data.
-const LOCAL_API =
+export const LOCAL_API =
   (import.meta.env.VITE_LOCAL_API as string | undefined) ||
   (location.protocol === 'http:' ? `http://${location.hostname}:8787` : null);
 export const db: SupabaseClient | null = LIVE ? createClient(URL_!, KEY!) : null;

@@ -103,6 +103,7 @@ function Dashboard() {
           </span>
           {data.mode !== 'live' && <span className="badge">{data.ai === 'ollama' ? 'AI: Ollama (local)' : 'AI: keyword fallback'}</span>}
           {data.lastUpdate && <span className="muted small">updated {ago(data.lastUpdate.toISOString())}</span>}
+          <a className="link" href="/report" target="_blank" rel="noreferrer">Help form ↗</a>
           {LIVE && <button className="link" onClick={() => db!.auth.signOut()}>Sign out</button>}
         </div>
       </header>

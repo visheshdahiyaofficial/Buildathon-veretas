@@ -149,7 +149,7 @@ phone app ──insert──▶ Supabase (Postgres + PostGIS + pgvector, RLS, pr
 - **Stable incidents.** Clusters keep their id between runs (matched by member overlap), so a coordinator's "team dispatched" status survives re-clustering, and only areas whose members changed are re-summarised.
 - **Works without the cloud AI and without signal.** If Ollama is down, a keyword extractor and topic vectors keep the pipeline running; phones queue reports offline.
 
-**Live dashboard (demo data, AI summaries by local Ollama):** https://crisispulse-umber.vercel.app
+**Live dashboard (demo data, AI summaries by local Ollama):** https://crisispulse-umber.vercel.app · **Help form (no app install):** https://crisispulse-umber.vercel.app/report
 
 ### How to run it
 
