@@ -16,6 +16,7 @@ interface Props {
 }
 
 const label = (k: string) => LABELS[k as keyof typeof LABELS] ?? k;
+const directions = (lat: number, lng: number) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
 function Photos({ paths }: { paths: string[] }) {
   const [urls, setUrls] = useState<string[]>([]);
@@ -75,7 +76,10 @@ function ReportCard({ r, focused, onClick }: { r: Report; focused: boolean; onCl
       <Photos paths={r.photo_paths} />
       <div className="muted small">
         {r.lat.toFixed(5)}, {r.lng.toFixed(5)}
-        {r.accuracy_m != null && ` · ±${Math.round(r.accuracy_m)} m`}
+        {r.accuracy_m != null && ` · ±${Math.round(r.accuracy_m)} m`} ·{' '}
+        <a className="nav-link" href={directions(r.lat, r.lng)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+          Navigate
+        </a>
       </div>
     </li>
   );
@@ -104,7 +108,10 @@ export default function ClusterDrawer({ cluster: c, reports, focusReportId, onFo
           </div>
           <h2>{c.title || 'Untitled cluster'}</h2>
           <div className="muted small">
-            {label(c.disaster_type)} · {c.report_count} reports · radius ~{c.radius_m} m · {clock(c.first_report_at)}–{clock(c.last_report_at)}
+            {label(c.disaster_type)} · {c.report_count} reports · radius ~{c.radius_m} m · {clock(c.first_report_at)}–{clock(c.last_report_at)} ·{' '}
+            <a className="nav-link" href={directions(c.lat, c.lng)} target="_blank" rel="noreferrer">
+              Navigate to area
+            </a>
           </div>
         </div>
         <button className="icon" onClick={onClose} aria-label="Close">×</button>
