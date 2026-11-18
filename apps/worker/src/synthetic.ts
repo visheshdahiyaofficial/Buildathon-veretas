@@ -42,6 +42,7 @@ const INCIDENTS: Incident[] = [
       { text: 'We are 3 people stuck in the basement parking of tower B, phone battery low', about: 'self', trapped: 3, people: 3, needs: ['rescue'] },
       { text: 'Rubble blocking the road to Sunrise Apartments, ambulances cannot enter', about: 'others', needs: ['rescue'] },
       { text: 'Smell of gas near the collapsed tower, please send fire brigade before it explodes', about: 'others', needs: ['rescue'] },
+      { text: 'Sector 29 mein building gir gayi, 6 log malbe mein dabe hain, jaldi rescue bhejo', about: 'others', trapped: 6, needs: ['rescue'] },
     ],
   },
   {
@@ -63,6 +64,7 @@ const INCIDENTS: Incident[] = [
       { text: 'Around 8 children trapped in the school classroom, teachers trying to pull them out', about: 'others', trapped: 8, children: true, needs: ['rescue', 'medical'] },
       { text: 'My son is in that school, nobody is telling us anything, parents gathered outside', about: 'others', children: true },
       { text: 'Several kids injured at the Sector 14 school, need ambulance urgently', about: 'others', injured: 6, children: true, needs: ['medical'] },
+      { text: 'School ki deewar giri, kai bachche andar phanse hue hain, teachers nikal rahe hain', about: 'others', trapped: 8, children: true, needs: ['rescue'] },
     ],
   },
   {
@@ -83,6 +85,7 @@ const INCIDENTS: Incident[] = [
       { text: 'We are 6 people in the park since last night, kids are hungry, need milk and blankets', about: 'self', people: 6, children: true, needs: ['food', 'shelter'] },
       { text: 'No toilets or tents at the park, elderly people sitting in cold', about: 'others', needs: ['shelter'] },
       { text: 'need drinking water at Leisure Valley, many babies here', about: 'others', children: true, needs: ['water'] },
+      { text: 'Park mein khana aur paani nahi hai, chhote bachche bhookhe hain', about: 'others', children: true, needs: ['food', 'water'] },
       { text: 'Our house cracked, we are staying in the park with 4 family members', about: 'self', people: 4, needs: ['shelter'] },
     ],
   },

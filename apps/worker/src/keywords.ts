@@ -13,8 +13,8 @@ const NUMBER_WORDS: Record<string, number> = {
 };
 
 const HAZARD_WORDS: Record<Hazard, RegExp> = {
-  collapse: /collaps|rubble|debris of|caved|fell down|crushed|pancak/,
-  fire: /fire|flame|burning|smoke|blaze/,
+  collapse: /collaps|rubble|debris of|caved|fell down|crushed|pancak|gir gay|giri|girii|malba|malbe/,
+  fire: /fire|flame|burning|smoke|blaze|\baag\b/,
   gas_leak: /gas (leak|smell)|smell of gas|lpg|cylinder/,
   flooding: /flood|water (rising|level|everywhere)|submerged|waterlog|knee.deep|waist.deep/,
   power_lines: /power line|live wire|electric(al)? (wire|pole)|transformer|sparking/,
@@ -24,16 +24,16 @@ const HAZARD_WORDS: Record<Hazard, RegExp> = {
 };
 
 const NEED_WORDS: Record<Need, RegExp> = {
-  rescue: /trapped|stuck|under (the )?rubble|can.?t get out|need rescue|dig|buried|pinned/,
-  medical: /injur|bleed|ambulance|doctor|medic|broken (leg|arm|bone)|unconscious|wounded|hospital|first aid|insulin|oxygen/,
-  water: /water to drink|drinking water|no water|thirst|need water/,
-  food: /food|hungry|nothing to eat|milk|ration/,
+  rescue: /trapped|stuck|under (the )?rubble|can.?t get out|need rescue|dig|buried|pinned|dabe|phans|fans[eia]|rescue/,
+  medical: /injur|bleed|ambulance|doctor|medic|broken (leg|arm|bone)|unconscious|wounded|hospital|first aid|insulin|oxygen|ghayal|chot/,
+  water: /water to drink|drinking water|no water|thirst|need water|paani nahi|pani nahi/,
+  food: /food|hungry|nothing to eat|milk|ration|khana|bhookh/,
   shelter: /shelter|tent|blanket|homeless|nowhere to (sleep|stay)|sleeping outside|cold/,
   evacuation: /evacuat|get us out|move (us|people)|boat|stranded/,
   power: /no (power|electricity)|blackout|charge (my )?phone|power cut/,
 };
 
-const CHILD_RE = /\b(child|children|kid|kids|baby|babies|infant|toddler|boy|girl|students?|school ?kids|son|daughter)\b/;
+const CHILD_RE = /\b(child|children|kid|kids|baby|babies|infant|toddler|boy|girl|students?|school ?kids|son|daughter|bachche|bachcha|bacche|baccha)\b/;
 
 function parseCount(word: string | undefined): number | null {
   if (!word) return null;
@@ -62,8 +62,8 @@ export function keywordExtract(raw: string): Extraction {
   const hazards = (Object.keys(HAZARD_WORDS) as Hazard[]).filter((h) => HAZARD_WORDS[h].test(text));
   const needs = (Object.keys(NEED_WORDS) as Need[]).filter((n) => NEED_WORDS[n].test(text));
 
-  const trappedMentioned = /trapped|stuck|under (the )?rubble|buried|pinned|can.?t get out/.test(text);
-  let trapped = countBefore(text, 'people|persons|men|women|family members|of us|workers|students|children|kids|residents|labourers')
+  const trappedMentioned = /trapped|stuck|under (the )?rubble|buried|pinned|can.?t get out|dabe|phans|fanse/.test(text);
+  let trapped = countBefore(text, 'people|persons|men|women|family members|of us|workers|students|children|kids|residents|labourers|log|bachche')
   if (!trappedMentioned) trapped = 0;
   else if (trapped === 0) trapped = 1;
   const trappedSpecific = text.match(/(\d+|\w+) (?:\w+ )?(?:are |is )?(?:still )?trapped/);
@@ -102,13 +102,13 @@ export function keywordExtract(raw: string): Extraction {
 // ---- Fallback embedding --------------------------------------------------
 
 const TOPICS: Record<string, RegExp> = {
-  collapse: /collaps|rubble|trapped|buried|crushed|caved|pinned|debris|pancak|fallen wall|building fell|dig/,
+  collapse: /collaps|rubble|trapped|buried|crushed|caved|pinned|debris|pancak|fallen wall|building fell|dig|gir gay|giri|malb|dabe|phans/,
   fire: /fire|flame|smoke|burning|blaze|cylinder|explosion|sparking/,
   flood: /flood|water rising|submerged|waterlog|deep water|boat/,
   medical: /injur|bleed|hospital|doctor|ambulance|medic|wounded|patients|stretcher|blood/,
   shelter: /shelter|\bcamp|\btents?\b|blanket|food|ration|hungry|sleeping|\bpark\b|toilet/,
   road: /\broads?\b|bridge|highway|traffic|flyover|pillar|chowk/,
-  school: /school|students|classroom|teacher/,
+  school: /school|students|classroom|teacher|bachche/,
   power: /power|electric|\bwires?\b|transformer|blackout/,
   safe: /safe|fine|okay|minor|no damage|felt|shaking|tremor|scared/,
 };
