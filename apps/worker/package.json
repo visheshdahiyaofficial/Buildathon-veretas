@@ -9,7 +9,8 @@
     "seed": "tsx scripts/seed.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "local": "tsx src/local.ts"
+    "local": "tsx src/local.ts",
+    "simulate": "tsx scripts/simulate.ts"
   },
   "dependencies": {
     "@dw/shared": "*",

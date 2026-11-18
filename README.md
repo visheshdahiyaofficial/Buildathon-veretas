@@ -159,7 +159,15 @@ npm test            # clustering + counting tests
 ```
 With [Ollama](https://ollama.com) running (`ollama pull qwen2.5:7b-instruct && ollama pull nomic-embed-text`) the demo uses real LLM extraction, embeddings and summaries; without it, the keyword fallback is used.
 
-**Full live setup**
+**Live demo on one Mac (no cloud account): phones on the same Wi-Fi report straight to the Mac**
+```bash
+npm run local -w worker -- --reset --empty   # terminal 1: local server + AI (prints the Mac's Wi-Fi address)
+npm run dashboard                            # terminal 2: shows "Live (local server)"
+npm run simulate                             # optional: replays the earthquake as a live feed
+```
+For phones: put `EXPO_PUBLIC_LOCAL_API=http://<mac-ip>:8787` in `apps/mobile/.env`, run `npm run mobile` and open it in Expo Go. Reports (with photos) appear on the dashboard within seconds; offline retries are de-duplicated by `client_id`.
+
+**Full live setup (Supabase, works across networks)**
 1. Create a Supabase project, run `supabase/migrations/0001_init.sql` in the SQL editor, enable **Anonymous sign-ins** (phones) and **Email** (coordinators).
 2. Create a coordinator user, then: `insert into dashboard_admins (user_id) select id from auth.users where email = 'you@example.com';`
 3. Copy each `.env.example` to `.env`: `apps/worker` (URL + service-role key, Mac only), `apps/dashboard` (URL + anon key), `apps/mobile` (URL + anon key).

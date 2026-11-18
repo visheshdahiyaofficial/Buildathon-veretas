@@ -22,7 +22,7 @@ import { processReports } from './process.js';
 import { syntheticReports } from './synthetic.js';
 
 const PORT = Number(process.env.LOCAL_PORT) || 8787;
-const DIR = fileURLToPath(new URL('../.local-data/', import.meta.url));
+const DIR = process.env.LOCAL_DATA_DIR?.replace(/\/?$/, '/') ?? fileURLToPath(new URL('../.local-data/', import.meta.url));
 const STATE_FILE = `${DIR}state.json`;
 const PHOTO_DIR = `${DIR}photos/`;
 mkdirSync(PHOTO_DIR, { recursive: true });
