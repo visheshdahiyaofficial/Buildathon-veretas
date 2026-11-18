@@ -1,9 +1,10 @@
 {
-  "team_name": "CHANGE_ME",
-  "project_title": "CHANGE_ME",
-  "one_liner": "CHANGE_ME: one sentence about what you're building",
-  "track": "CHANGE_ME: physical-world | ai-agents | area-of-expertise",
+  "team_name": "veretas",
+  "project_title": "CrisisPulse",
+  "one_liner": "People caught in an earthquake or storm send geotagged updates from their phones; local AI groups nearby reports and tells responders where people are trapped, how many, and whether children are among them.",
+  "track": "physical-world",
   "members": [
-    { "name": "CHANGE_ME", "github": "CHANGE_ME" }
+    { "name": "Vishesh Dahiya", "github": "visheshdahiyaofficial" },
+    { "name": "Sehaj Preet Singh", "github": "ss2378580-cmd" }
   ]
 }
