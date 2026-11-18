@@ -170,6 +170,14 @@ npm run simulate                             # optional: replays the earthquake 
 ```
 For phones: put `EXPO_PUBLIC_LOCAL_API=http://<mac-ip>:8787` in `apps/mobile/.env`, run `npm run mobile` and open it in Expo Go. Reports (with photos) appear on the dashboard within seconds; offline retries are de-duplicated by `client_id`.
 
+**Live on the hosted dashboard (phones on any network)**
+```bash
+npm run local -w worker                                  # local server + Ollama on the Mac
+cloudflared tunnel --url http://localhost:8787           # prints https://<name>.trycloudflare.com
+VITE_LOCAL_API=https://<name>.trycloudflare.com npm run build -w dashboard   # then deploy dist/ to Vercel
+```
+Put the same URL in `apps/mobile/.env` as `EXPO_PUBLIC_LOCAL_API`. If the Mac or tunnel is off, the hosted dashboard falls back to the demo data.
+
 **Full live setup (Supabase, works across networks)**
 1. Create a Supabase project, run `supabase/migrations/0001_init.sql` in the SQL editor, enable **Anonymous sign-ins** (phones) and **Email** (coordinators).
 2. Create a coordinator user, then: `insert into dashboard_admins (user_id) select id from auth.users where email = 'you@example.com';`
