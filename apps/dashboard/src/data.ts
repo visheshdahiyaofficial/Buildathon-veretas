@@ -6,6 +6,8 @@ const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 export const LIVE = Boolean(URL_ && KEY);
+/** Local mode server (npm run local). Tried before falling back to the static demo file. */
+const LOCAL_API = (import.meta.env.VITE_LOCAL_API as string | undefined) || `http://${location.hostname}:8787`;
 export const db: SupabaseClient | null = LIVE ? createClient(URL_!, KEY!) : null;
 
 const REPORT_COLS =
@@ -27,7 +29,7 @@ export interface DataState {
   clusters: Cluster[];
   loading: boolean;
   error: string | null;
-  mode: 'live' | 'demo';
+  mode: 'live' | 'local' | 'demo';
   ai: 'ollama' | 'fallback' | 'live';
   lastUpdate: Date | null;
   setStatus: (id: string, status: ClusterStatus) => Promise<void>;
@@ -42,10 +44,27 @@ export function useData(enabled: boolean): DataState {
   const [ai, setAi] = useState<DataState['ai']>(LIVE ? 'live' : 'fallback');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mode, setMode] = useState<DataState['mode']>(LIVE ? 'live' : 'demo');
+  const localVersion = useRef(-1);
 
   const load = useCallback(async () => {
     try {
       if (!db) {
+        const local = await fetch(`${LOCAL_API}/state`, { signal: AbortSignal.timeout(1500) }).catch(() => null);
+        if (local?.ok) {
+          const d = (await local.json()) as DemoData & { version: number };
+          setMode('local');
+          setAi(d.ai);
+          if (d.version !== localVersion.current) {
+            localVersion.current = d.version;
+            setReports(d.reports);
+            setClusters(d.clusters);
+          }
+          setError(null);
+          setLastUpdate(new Date());
+          return;
+        }
+        setMode('demo');
         const res = await fetch(`/demo.json?t=${Date.now()}`);
         if (!res.ok) throw new Error('No demo data. Run `npm run demo` first.');
         const d = (await res.json()) as DemoData;
@@ -75,7 +94,11 @@ export function useData(enabled: boolean): DataState {
   useEffect(() => {
     if (!enabled) return;
     load();
-    if (!db) return;
+    if (!db) {
+      // Local mode has no realtime channel: poll (cheap, the server only sends changes by version).
+      const t = setInterval(load, 3000);
+      return () => clearInterval(t);
+    }
     // Debounce bursts of realtime events (the worker updates many rows at once).
     const soon = () => {
       if (timer.current) clearTimeout(timer.current);
@@ -96,14 +119,21 @@ export function useData(enabled: boolean): DataState {
     if (db) {
       const { error } = await db.from('clusters').update({ status }).eq('id', id);
       if (error) setError(error.message);
+    } else {
+      await fetch(`${LOCAL_API}/clusters/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ status }),
+      }).catch(() => {});
     }
   }, []);
 
-  return { reports, clusters, loading, error, mode: LIVE ? 'live' : 'demo', ai, lastUpdate, setStatus };
+  return { reports, clusters, loading, error, mode, ai, lastUpdate, setStatus };
 }
 
 /** Short-lived links to private report photos. */
 export async function signedPhotoUrls(paths: string[]): Promise<string[]> {
+  if (paths.every((p) => p.startsWith('http'))) return paths; // local mode serves photos directly
   if (!db || !paths.length) return [];
   const { data } = await db.storage.from('report-photos').createSignedUrls(paths, 600);
   return (data ?? []).map((d) => d.signedUrl).filter(Boolean) as string[];

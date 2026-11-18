@@ -8,7 +8,8 @@
     "demo": "tsx scripts/demo.ts",
     "seed": "tsx scripts/seed.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "local": "tsx src/local.ts"
   },
   "dependencies": {
     "@dw/shared": "*",

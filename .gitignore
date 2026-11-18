@@ -32,3 +32,4 @@ package-lock.json
 /apps/mobile/ios/
 /apps/mobile/android/
 apps/dashboard/public/demo.json
+apps/worker/.local-data/

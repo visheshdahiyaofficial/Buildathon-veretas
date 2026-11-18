@@ -4,6 +4,7 @@
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dashboard": "npm run dev -w dashboard",
+    "local": "npm run local -w worker",
     "worker": "npm run start -w worker",
     "demo": "npm run demo -w worker",
     "seed": "npm run seed -w worker",

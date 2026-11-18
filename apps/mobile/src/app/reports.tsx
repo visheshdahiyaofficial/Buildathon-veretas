@@ -1,7 +1,7 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LABELS } from '@dw/shared';
 import { flush, useOutbox, type OutboxItem } from '@/lib/outbox';
-import { LIVE } from '@/lib/supabase';
+import { CONNECTED as LIVE } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 
 const STATUS: Record<OutboxItem['status'], { label: string; color: string; bg: string }> = {

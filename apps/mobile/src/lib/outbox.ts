@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useSyncExternalStore } from 'react';
 import type { ReportInput } from '@dw/shared';
-import { ensureUserId, LIVE, supabase } from './supabase';
+import { CONNECTED, ensureUserId, LIVE, LOCAL_API, supabase } from './supabase';
 
 export type OutboxStatus = 'queued' | 'sending' | 'sent' | 'failed';
 
@@ -66,7 +66,29 @@ async function uploadPhoto(userId: string, clientId: string, uri: string, n: num
   return path;
 }
 
+async function toDataUrl(uri: string): Promise<string> {
+  const blob = await (await fetch(uri)).blob();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).replace(/^data:[^;]*;/, 'data:image/jpeg;'));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+/** Local mode: POST to the Mac running `npm run local`. The server dedupes on client_id. */
+async function sendLocal(item: OutboxItem): Promise<void> {
+  const photos = await Promise.all(item.localPhotos.map(toDataUrl));
+  const res = await fetch(`${LOCAL_API}/reports`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...item.input, photos }),
+  });
+  if (!res.ok) throw new Error(`server said ${res.status}: ${await res.text()}`);
+}
+
 async function sendOne(item: OutboxItem): Promise<void> {
+  if (!LIVE && LOCAL_API) return sendLocal(item);
   const userId = await ensureUserId();
   const photo_paths: string[] = [];
   for (let n = 0; n < item.localPhotos.length; n++) {
@@ -85,7 +107,7 @@ export function flush(): Promise<void> {
   flushing ??= (async () => {
     try {
       await load();
-      if (!LIVE) return;
+      if (!CONNECTED) return;
       const net = await NetInfo.fetch();
       if (net.isConnected === false) return;
       for (const item of items.filter((i) => i.status === 'queued' || i.status === 'failed')) {

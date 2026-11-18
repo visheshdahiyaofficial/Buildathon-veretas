@@ -5,8 +5,14 @@ import { createClient } from '@supabase/supabase-js';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** False when the app was built without Supabase keys: reports are kept on the phone only. */
+/** Supabase configured: reports go to the cloud database. */
 export const LIVE = Boolean(url && key);
+
+/** Local mode: the Mac running `npm run local` on the same Wi-Fi, e.g. http://192.168.1.5:8787 */
+export const LOCAL_API = process.env.EXPO_PUBLIC_LOCAL_API?.replace(/\/$/, '') || null;
+
+/** False when there is nowhere to send reports: they stay on the phone. */
+export const CONNECTED = LIVE || Boolean(LOCAL_API);
 
 export const supabase = LIVE
   ? createClient(url!, key!, {

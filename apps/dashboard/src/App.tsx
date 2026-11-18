@@ -93,8 +93,10 @@ function Dashboard() {
           <div className="kpi kpi-purple"><b>{totals.critical}</b><span>critical open</span></div>
         </div>
         <div className="mode">
-          <span className={`badge ${data.mode === 'live' ? 'badge-live' : ''}`}>{data.mode === 'live' ? '● Live' : 'Demo data'}</span>
-          {data.mode === 'demo' && <span className="badge">{data.ai === 'ollama' ? 'AI: Ollama' : 'AI: keyword fallback'}</span>}
+          <span className={`badge ${data.mode !== 'demo' ? 'badge-live' : ''}`}>
+            {data.mode === 'live' ? '● Live' : data.mode === 'local' ? '● Live (local server)' : 'Demo data'}
+          </span>
+          {data.mode !== 'live' && <span className="badge">{data.ai === 'ollama' ? 'AI: Ollama (local)' : 'AI: keyword fallback'}</span>}
           {data.lastUpdate && <span className="muted small">updated {ago(data.lastUpdate.toISOString())}</span>}
           {LIVE && <button className="link" onClick={() => db!.auth.signOut()}>Sign out</button>}
         </div>

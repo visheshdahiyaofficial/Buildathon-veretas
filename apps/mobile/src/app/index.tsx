@@ -8,7 +8,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, Sc
 import { DISASTER_TYPES, LABELS, NEEDS, type DisasterType, type Need } from '@dw/shared';
 import { Card, Chip, Stepper, s as ui } from '@/components/ui';
 import { enqueue, newClientId, useOutbox } from '@/lib/outbox';
-import { LIVE } from '@/lib/supabase';
+import { CONNECTED as LIVE } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 
 type Fix = { lat: number; lng: number; accuracy: number | null; at: number };
