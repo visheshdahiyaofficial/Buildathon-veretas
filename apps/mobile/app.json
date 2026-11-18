@@ -1,14 +1,16 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "CrisisPulse",
+    "slug": "crisispulse",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
+    "scheme": "crisispulse",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.veretas.crisispulse",
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -17,10 +19,15 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.veretas.crisispulse",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ]
     },
     "web": {
-      "output": "server",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -28,9 +35,22 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#ffffff",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "CrisisPulse attaches your location to emergency reports so rescuers can find you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Attach photos of the situation to your report.",
+          "cameraPermission": "Take photos of the situation for your report."
         }
       ]
     ],
