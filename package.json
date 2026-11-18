@@ -1,0 +1,14 @@
+{
+  "name": "buildathon-veretas",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dashboard": "npm run dev -w dashboard",
+    "worker": "npm run start -w worker",
+    "demo": "npm run demo -w worker",
+    "seed": "npm run seed -w worker",
+    "mobile": "npm run start -w mobile",
+    "test": "npm test -w worker",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

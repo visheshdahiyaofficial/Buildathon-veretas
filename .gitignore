@@ -24,3 +24,11 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Project
+package-lock.json
+.expo/
+*.tsbuildinfo
+/apps/mobile/ios/
+/apps/mobile/android/
+apps/dashboard/public/demo.json
