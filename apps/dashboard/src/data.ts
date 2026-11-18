@@ -7,7 +7,10 @@ const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 export const LIVE = Boolean(URL_ && KEY);
 /** Local mode server (npm run local). Tried before falling back to the static demo file. */
-const LOCAL_API = (import.meta.env.VITE_LOCAL_API as string | undefined) || `http://${location.hostname}:8787`;
+// On a hosted https site (e.g. Vercel) there is no local server to try: go straight to demo data.
+const LOCAL_API =
+  (import.meta.env.VITE_LOCAL_API as string | undefined) ||
+  (location.protocol === 'http:' ? `http://${location.hostname}:8787` : null);
 export const db: SupabaseClient | null = LIVE ? createClient(URL_!, KEY!) : null;
 
 const REPORT_COLS =
@@ -50,7 +53,7 @@ export function useData(enabled: boolean): DataState {
   const load = useCallback(async () => {
     try {
       if (!db) {
-        const local = await fetch(`${LOCAL_API}/state`, { signal: AbortSignal.timeout(1500) }).catch(() => null);
+        const local = LOCAL_API ? await fetch(`${LOCAL_API}/state`, { signal: AbortSignal.timeout(1500) }).catch(() => null) : null;
         if (local?.ok) {
           const d = (await local.json()) as DemoData & { version: number };
           setMode('local');
@@ -96,6 +99,7 @@ export function useData(enabled: boolean): DataState {
     load();
     if (!db) {
       // Local mode has no realtime channel: poll (cheap, the server only sends changes by version).
+      if (!LOCAL_API) return; // static demo data never changes
       const t = setInterval(load, 3000);
       return () => clearInterval(t);
     }
@@ -119,7 +123,7 @@ export function useData(enabled: boolean): DataState {
     if (db) {
       const { error } = await db.from('clusters').update({ status }).eq('id', id);
       if (error) setError(error.message);
-    } else {
+    } else if (LOCAL_API) {
       await fetch(`${LOCAL_API}/clusters/${id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },

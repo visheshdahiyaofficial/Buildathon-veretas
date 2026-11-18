@@ -44,7 +44,12 @@ function Dashboard() {
   const [hideResolved, setHideResolved] = useState(false);
   const [hours, setHours] = useState<Window>(72);
 
-  const since = Date.now() - hours * 3600_000;
+  // Demo data is a fixed snapshot: measure the time window from its newest report, not from now.
+  const latest = useMemo(
+    () => (data.mode === 'demo' ? Math.max(0, ...data.reports.map((r) => new Date(r.reported_at).getTime())) : 0),
+    [data.mode, data.reports],
+  );
+  const since = (data.mode === 'demo' && latest ? latest : Date.now()) - hours * 3600_000;
   const reports = useMemo(() => data.reports.filter((r) => new Date(r.reported_at).getTime() >= since && (type === 'all' || r.disaster_type === type)), [data.reports, since, type]);
   const clusters = useMemo(
     () =>
