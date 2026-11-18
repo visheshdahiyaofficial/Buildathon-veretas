@@ -63,6 +63,8 @@ export const ReportInputSchema = z.object({
   lng: z.number().min(-180).max(180),
   accuracy_m: z.number().min(0).nullable(),
   disaster_type: z.enum(DISASTER_TYPES),
+  /** 'self' = counts describe the reporter's own group; 'others' = what they can see around them. */
+  about: z.enum(['self', 'others']),
   text: z.string().max(4000),
   people_count: count.nullable(),
   trapped_count: count,
@@ -105,7 +107,10 @@ export interface Cluster {
   disaster_type: DisasterType;
   severity: number; // 1–5
   people_count: number;
+  /** Best estimate of people trapped (see aggregate.ts in the worker). */
   trapped_count: number;
+  /** Trapped people who reported themselves (first-hand). */
+  trapped_confirmed: number;
   children_count: number;
   injured_count: number;
   needs: Need[];
