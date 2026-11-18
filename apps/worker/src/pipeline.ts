@@ -3,30 +3,59 @@ import type { Cluster, ClusterStatus, Report } from '@dw/shared';
 import { aggregate, type Member } from './aggregate.js';
 import { clusterPoints, matchIds, type ClusterParams } from './cluster.js';
 import { config } from './config.js';
+import { normalize } from './geo.js';
 import { keywordEmbed } from './keywords.js';
 import { reportText } from './extract.js';
 import { summarise } from './summarise.js';
 
 export type ProcessedReport = Report & { embedding: number[] | null };
 
-/** Similarity thresholds differ between real embeddings and the keyword fallback. */
-const OLLAMA_SIMILARITY = 0.62;
-const KEYWORD_SIMILARITY = 0.5;
-
 export function memberHash(ids: string[]): string {
   return createHash('sha1').update([...ids].sort().join(',')).digest('hex');
 }
 
+/** Neighbour threshold on the blended similarity (see vectorsFor). */
+const MIN_SIMILARITY = 0.5;
+/** Weight of the neural embedding in the blend; the rest is the fact/topic vector. */
+const EMBED_WEIGHT = 0.35;
+
+/** Words for the facts the LLM normalised (works for any input language). */
+function factWords(r: ProcessedReport): string {
+  const x = r.extracted;
+  if (!x) return '';
+  return [...x.hazards, ...x.needs, x.trapped_count > 0 ? 'trapped' : '', x.injured_count > 0 ? 'injured' : '', x.urgency <= 1 ? 'safe' : '']
+    .join(' ')
+    .replace(/_/g, ' ');
+}
+
 /**
- * Choose one vector space for the whole run. If every report has a real
- * embedding use those; otherwise fall back to keyword vectors for all, so
- * cosine similarity is always comparing like with like.
+ * The vector each report is compared with.
+ *
+ * We measured raw nomic-embed-text cosine on our scenario: reports from
+ * different incidents scored ~0.79, the same as reports from one incident,
+ * because every report shares the "disaster report" direction. So:
+ *   1. a topic vector built from the text PLUS the facts the LLM extracted
+ *      (hazards, needs, trapped) carries most of the weight. The LLM is what
+ *      turns "chhat gir gayi, log dabe hain" into collapse + trapped;
+ *   2. the neural embedding, mean-centred over the batch to remove the shared
+ *      direction, is blended in for meaning the keywords miss.
+ * Concatenating two unit vectors scaled by sqrt(w) makes the cosine a
+ * weighted average of the two cosines.
  */
 export function vectorsFor(reports: ProcessedReport[]): { vecs: number[][]; minSimilarity: number } {
+  const topic = reports.map((r) => keywordEmbed(`${reportText(r)} ${factWords(r)}`));
   const dim = reports[0]?.embedding?.length ?? 0;
   const allReal = dim > 0 && reports.every((r) => r.embedding?.length === dim);
-  if (allReal) return { vecs: reports.map((r) => r.embedding!), minSimilarity: OLLAMA_SIMILARITY };
-  return { vecs: reports.map((r) => keywordEmbed(reportText(r))), minSimilarity: KEYWORD_SIMILARITY };
+  if (!allReal) return { vecs: topic, minSimilarity: MIN_SIMILARITY };
+
+  const mean = new Array<number>(dim).fill(0);
+  for (const r of reports) r.embedding!.forEach((x, k) => (mean[k] += x / reports.length));
+  const centred = reports.map((r) => normalize(r.embedding!.map((x, k) => x - mean[k])));
+  const a = Math.sqrt(1 - EMBED_WEIGHT), b = Math.sqrt(EMBED_WEIGHT);
+  return {
+    vecs: reports.map((_, i) => [...topic[i].map((x) => x * a), ...centred[i].map((x) => x * b)]),
+    minSimilarity: MIN_SIMILARITY * (1 - EMBED_WEIGHT) + 0.1 * EMBED_WEIGHT,
+  };
 }
 
 export interface RunResult {
