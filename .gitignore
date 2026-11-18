@@ -34,3 +34,4 @@ package-lock.json
 apps/worker/.local-data/
 
 .vercel/
+crisispulse-expo-qr.png
