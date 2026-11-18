@@ -15,7 +15,7 @@ export function memberHash(ids: string[]): string {
 }
 
 /** Neighbour threshold on the blended similarity (see vectorsFor). */
-const MIN_SIMILARITY = 0.5;
+const MIN_SIMILARITY = 0.6;
 /** Weight of the neural embedding in the blend; the rest is the fact/topic vector. */
 const EMBED_WEIGHT = 0.35;
 

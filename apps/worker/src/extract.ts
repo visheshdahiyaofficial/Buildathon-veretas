@@ -8,7 +8,8 @@ Extract only facts stated or clearly implied in the text. Never invent people.
 - children_count: children, babies or students mentioned as present or affected.
 - injured_count: people hurt.
 - people_count: total people the reporter says are with them or affected, or null if not said.
-- urgency: 1 = safe / informational, 3 = needs help soon, 5 = life-threatening right now.
+- urgency: 1 = safe / informational, 3 = needs help soon, 4 = injuries or fire/gas/collapse, 5 = anyone trapped or life-threatening.
+- Vague amounts: "several", "kai", "many" = at least 3; "a few" = 2.
 - summary_line: one short English sentence describing the situation (translate if needed).
 Use 0 when a count is not mentioned.`;
 
@@ -37,6 +38,45 @@ export function reportText(r: Pick<ReportInput, 'text' | 'disaster_type' | 'need
   return `[${r.disaster_type}] ${r.text}${ticks.length ? ` (${ticks.join('; ')})` : ''}`;
 }
 
+const SERIOUS: Extraction['hazards'] = ['collapse', 'fire', 'gas_leak', 'chemical'];
+
+/** Loose evidence (English + common Hindi) that a hazard the LLM named is really in the text. */
+const HAZARD_HINTS: Record<Extraction['hazards'][number], RegExp> = {
+  collapse: /collaps|fell|fall|rubble|malb|gir|crack|caved|pancak|debris|wall|roof|dabe|trapped/i,
+  fire: /fire|flame|smoke|burn|blaze|aag|spark|explo/i,
+  gas_leak: /gas|lpg|cylinder|smell/i,
+  flooding: /flood|water|paani|pani|rain|baarish|submerg|river|drown/i,
+  power_lines: /power|wire|electric|transformer|bijli|spark|pole/i,
+  chemical: /chemical|toxic|fumes|acid|factory/i,
+  landslide: /landslide|mud|slope|hill|pahad/i,
+  debris: /debris|road|block|tree|rubble|malb|crack|bridge|flyover/i,
+};
+
+/**
+ * Code guardrails on top of the LLM. A 7B model is good at reading messy,
+ * mixed-language text but inconsistent with numbers and urgency, so:
+ * explicit numbers found by the keyword reader act as a floor, hazards and
+ * needs are merged, and urgency follows hard rules (anyone trapped = 5).
+ */
+export function guard(llm: Extraction, text: string): Extraction {
+  const kw = keywordExtract(text);
+  const x: Extraction = {
+    ...llm,
+    trapped_count: Math.max(llm.trapped_count, kw.trapped_count),
+    children_count: Math.max(llm.children_count, kw.children_count),
+    injured_count: Math.max(llm.injured_count, kw.injured_count),
+    hazards: [...new Set([...llm.hazards.filter((h) => HAZARD_HINTS[h].test(text)), ...kw.hazards])],
+    needs: [...new Set([...llm.needs, ...kw.needs])],
+    summary_line: llm.summary_line || kw.summary_line,
+  };
+  let u = Math.max(llm.urgency, kw.urgency);
+  if (x.injured_count > 0 || x.hazards.some((h) => SERIOUS.includes(h))) u = Math.max(u, 4);
+  if (x.trapped_count > 0) u = 5;
+  // Calm reports ("we are safe") stay low even if the model over-reacts.
+  if (kw.urgency === 1 && !x.trapped_count && !x.injured_count && !x.hazards.length) u = Math.min(u, 2);
+  return { ...x, urgency: u };
+}
+
 /**
  * The reporter's own answers are ground truth; the AI only fills gaps.
  * e.g. ticking "children present" guarantees children_count >= 1.
@@ -57,7 +97,7 @@ export async function extractOne(r: ReportInput): Promise<Extraction> {
   let x: Extraction;
   if (await ollamaAvailable()) {
     try {
-      x = ExtractionSchema.parse(await chatJson(SYSTEM, r.text || '(no text, only checkboxes)', JSON_SCHEMA, 60_000));
+      x = guard(ExtractionSchema.parse(await chatJson(SYSTEM, r.text || '(no text, only checkboxes)', JSON_SCHEMA, 60_000)), r.text);
     } catch (e) {
       console.warn('[extract] LLM failed, using keywords:', (e as Error).message);
       x = keywordExtract(r.text);

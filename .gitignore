@@ -31,5 +31,4 @@ package-lock.json
 *.tsbuildinfo
 /apps/mobile/ios/
 /apps/mobile/android/
-apps/dashboard/public/demo.json
 apps/worker/.local-data/

@@ -36,7 +36,14 @@ let state: State = { reports: [], clusters: [] };
 if (existsSync(STATE_FILE) && !process.argv.includes('--reset')) {
   state = JSON.parse(readFileSync(STATE_FILE, 'utf8')) as State;
 } else if (!process.argv.includes('--empty')) {
-  state.reports = syntheticReports().map((r) => ({ ...r, embedding: null }));
+  // Start from the AI-processed demo (instant) if it exists, else raw synthetic reports.
+  const demo = fileURLToPath(new URL('../../dashboard/public/demo.json', import.meta.url));
+  if (existsSync(demo)) {
+    const d = JSON.parse(readFileSync(demo, 'utf8')) as DemoData;
+    state = { reports: d.reports.map((r) => ({ ...r, embedding: null })), clusters: d.clusters };
+  } else {
+    state.reports = syntheticReports().map((r) => ({ ...r, embedding: null }));
+  }
 }
 
 const ai = (await ollamaAvailable()) ? 'ollama' : 'fallback';

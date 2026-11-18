@@ -24,6 +24,7 @@ export interface Totals {
   people_count: number;
   trapped_count: number;
   trapped_confirmed: number;
+  trapped_reported_max: number;
   children_count: number;
   injured_count: number;
   needs: Need[];
@@ -81,10 +82,12 @@ export function duplicateGroups(members: Member[]): number[][] {
   return [...groups.values()];
 }
 
-function ranked<T extends string>(lists: T[][]): T[] {
+/** Most-mentioned first; `minShare` drops items only a few reports mention (one bad extraction). */
+function ranked<T extends string>(lists: T[][], minShare = 0): T[] {
   const freq = new Map<T, number>();
   for (const l of lists) for (const x of new Set(l)) freq.set(x, (freq.get(x) ?? 0) + 1);
-  return [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  const min = Math.max(1, Math.ceil(lists.length * minShare));
+  return [...freq.entries()].filter(([, n]) => n >= min).sort((a, b) => b[1] - a[1]).map(([k]) => k);
 }
 
 export function severityOf(t: Omit<Totals, 'severity'>, meanUrgency: number): number {
@@ -101,11 +104,20 @@ export function severityOf(t: Omit<Totals, 'severity'>, meanUrgency: number): nu
 
 type Metric = 'trapped_count' | 'children_count' | 'injured_count' | 'people_count';
 
-/** Upper-quartile of the non-zero values: a robust "what most witnesses agree on, leaning high". */
+/**
+ * What the witnesses agree on. The highest number given by at least two
+ * witnesses (corroborated), or the upper quartile if nobody agrees. A single
+ * wild "100 trapped" is ignored, but a vaguer witness ("people inside") does
+ * not pull down a specific, repeated "8 children trapped".
+ */
 export function witnessEstimate(values: number[]): number {
   const v = values.filter((x) => x > 0).sort((a, b) => a - b);
   if (!v.length) return 0;
-  return v[Math.min(v.length - 1, Math.floor(v.length * 0.75))];
+  const counts = new Map<number, number>();
+  for (const x of v) counts.set(x, (counts.get(x) ?? 0) + 1);
+  const corroborated = [...counts.entries()].filter(([, n]) => n >= 2).map(([x]) => x);
+  const quartile = v[Math.min(v.length - 1, Math.floor(v.length * 0.75))];
+  return corroborated.length ? Math.max(quartile, ...corroborated) : quartile;
 }
 
 /**
@@ -157,10 +169,11 @@ export function aggregate(members: Member[]): Totals {
     people_count: Math.max(people, trapped + injured),
     trapped_count: trapped,
     trapped_confirmed: trappedConfirmed,
+    trapped_reported_max: Math.max(0, ...members.map((m) => m.x.trapped_count)),
     children_count: children,
     injured_count: injured,
     needs: ranked(members.map((m) => m.x.needs)),
-    hazards: ranked(members.map((m) => m.x.hazards)),
+    hazards: ranked(members.map((m) => m.x.hazards), 0.12),
     first_report_at: times[0],
     last_report_at: times[times.length - 1],
     distinct_sources: groups.length + witnesses.length,

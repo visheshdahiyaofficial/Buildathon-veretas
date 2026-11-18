@@ -23,6 +23,7 @@ create table if not exists clusters (
   people_count int not null default 0,
   trapped_count int not null default 0,
   trapped_confirmed int not null default 0,
+  trapped_reported_max int not null default 0,
   children_count int not null default 0,
   injured_count int not null default 0,
   needs text[] not null default '{}',

@@ -5,6 +5,7 @@ import { clusterPoints, matchIds } from './cluster.js';
 import { mergeWithReporter } from './extract.js';
 import { keywordEmbed, keywordExtract } from './keywords.js';
 import { runClustering } from './pipeline.js';
+import { dropInventedPlaces, stripCounts } from './summarise.js';
 import { processReports } from './process.js';
 import { syntheticReports } from './synthetic.js';
 
@@ -96,4 +97,16 @@ describe('end to end on the synthetic earthquake (keyword fallback)', () => {
     // No cluster should claim an absurd number of trapped people.
     expect(Math.max(...clusters.map((c) => c.trapped_count))).toBeLessThanOrEqual(10);
   }, 30_000);
+});
+
+describe('summaries', () => {
+  it('drops place names that no report mentions', () => {
+    const texts = ['Large cracks in the NH-48 flyover near IFFCO chowk'];
+    expect(dropInventedPlaces('Earthquake, Downtown Area – Minor Damage', texts)).toBe('Earthquake – Minor Damage');
+    expect(dropInventedPlaces('Flyover cracks, NH-48 – traffic disrupted', texts)).toBe('Flyover cracks – NH-48 – traffic disrupted');
+  });
+  it('removes sentences where the LLM counted people itself', () => {
+    const s = 'Tower B collapsed, trapping at least 28 people. Gas leak reported in Sector 29. Rescue needed.';
+    expect(stripCounts(s)).toBe('Gas leak reported in Sector 29. Rescue needed.');
+  });
 });

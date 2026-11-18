@@ -111,6 +111,8 @@ export interface Cluster {
   trapped_count: number;
   /** Trapped people who reported themselves (first-hand). */
   trapped_confirmed: number;
+  /** Highest trapped number any single report claimed (may be uncorroborated). */
+  trapped_reported_max: number;
   children_count: number;
   injured_count: number;
   needs: Need[];

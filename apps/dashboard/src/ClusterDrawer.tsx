@@ -122,6 +122,7 @@ export default function ClusterDrawer({ cluster: c, reports, focusReportId, onFo
           <b>{c.trapped_count}</b>
           <span>trapped (est.)</span>
           {c.trapped_count > 0 && <em>{c.trapped_confirmed} self-reported</em>}
+          {c.trapped_reported_max > c.trapped_count && <em className="t-red">one report: up to {c.trapped_reported_max}</em>}
         </div>
         <div className={`stat ${c.children_count ? 'stat-amber' : ''}`}>
           <b>{c.children_count > 0 ? c.children_count : 'No'}</b>

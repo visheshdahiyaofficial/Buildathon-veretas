@@ -59,7 +59,9 @@ export function clusterPoints(points: Point[], p: ClusterParams): number[][] {
           const b = points[j];
           const d = haversine(a.lat, a.lng, b.lat, b.lng);
           if (d > p.epsMeters) continue;
-          if (d <= p.sameSpotMeters || cosine(a.vec, b.vec) >= p.minSimilarity) out.push(j);
+          const sim = cosine(a.vec, b.vec);
+          // On the same spot a little shared topic is enough; further away it must clearly match.
+          if ((d <= p.sameSpotMeters && sim >= 0.2) || sim >= p.minSimilarity) out.push(j);
         }
       }
     }

@@ -13,13 +13,16 @@ algorithm grouped as one incident area, plus FIXED NUMBERS that were already cou
 carefully (duplicates removed). Write a short situation report for a rescue coordinator.
 
 Rules:
-- Use the given numbers exactly. Never add up numbers from the reports yourself.
-- "trapped (estimate)" comes from witnesses; "trapped (confirmed)" are people who reported themselves trapped. Mention both when they differ.
+- NEVER write any count of people (trapped, injured, children, affected, families). The verified
+  numbers are shown separately; numbers you add up from reports would double count. Say "people are
+  trapped", "children are among them", not how many.
 - Say clearly whether children are present.
 - Mention concrete places, hazards and what people need, taken from the reports.
 - Plain English, no markdown, no speculation beyond the reports.
-- title: max 8 words, e.g. "Apartment collapse, Sector 29 – people trapped".
-- summary: 3–5 sentences: what is happening, who is affected (trapped, children, injured), hazards, needs, recommended first action.`;
+- Only mention place names that appear in the reports. Never invent a sector or street.
+- title: max 8 words: the main event, the place if reports name one, and the key risk (e.g. "<event>, <place> – <key risk>").
+  Only say "trapped" in the title if trapped (estimate) is above 0.
+- summary: 2–4 sentences: what is happening and where, who is affected (without numbers), hazards, needs, recommended first action.`;
 
 const OutSchema = z.object({ title: z.string().min(3).max(120), summary: z.string().min(20).max(1500) });
 
@@ -38,6 +41,7 @@ function facts(t: Totals): string {
     `area radius: ~${t.radius_m} m`,
     `trapped (estimate): ${t.trapped_count}`,
     `trapped (confirmed, self-reported): ${t.trapped_confirmed}`,
+    `highest number of trapped claimed by a single report (uncorroborated): ${t.trapped_reported_max}`,
     `children present: ${t.children_count > 0 ? `yes, about ${t.children_count}` : 'none reported'}`,
     `injured: ${t.injured_count}`,
     `people affected (estimate): ${t.people_count}`,
@@ -51,6 +55,31 @@ function facts(t: Totals): string {
 /** Pick the most informative reports to show the model (urgent first, then varied). */
 function sample(members: SummaryInput['members'], max = 15) {
   return [...members].sort((a, b) => b.x.urgency - a.x.urgency || b.text.length - a.text.length).slice(0, max);
+}
+
+/** The numbers sentence, written in code from the verified totals. */
+export function numbersLine(t: Totals): string {
+  const parts: string[] = [];
+  if (t.trapped_count) {
+    let s = `About ${t.trapped_count} trapped (${t.trapped_confirmed} confirmed by their own reports`;
+    if (t.trapped_reported_max > t.trapped_count) s += `; one report says up to ${t.trapped_reported_max}`;
+    parts.push(`${s})`);
+  }
+  parts.push(t.children_count ? `children present (about ${t.children_count})` : 'no children reported');
+  if (t.injured_count) parts.push(`${t.injured_count} injured`);
+  parts.push(`${t.report_count} reports`);
+  const line = parts.join(', ');
+  return `${line[0].toUpperCase()}${line.slice(1)}.`;
+}
+
+const COUNT_SENTENCE = /\b(\d+|several|dozens|hundreds)\s+(?:\w+\s+){0,2}?(people|persons|children|kids|injured|trapped|families|individuals|victims)\b/i;
+
+/** Remove any sentence where the model still stated a people count. */
+export function stripCounts(text: string): string {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !COUNT_SENTENCE.test(sentence))
+    .join(' ');
 }
 
 export function templateSummary({ totals: t }: SummaryInput): { title: string; summary: string } {
@@ -74,6 +103,26 @@ export function templateSummary({ totals: t }: SummaryInput): { title: string; s
   return { title, summary: parts.join(' ') };
 }
 
+const COMMON = new Set(
+  'earthquake flood storm tornado fire landslide tsunami people trapped injured children affected need needs minor major damage shaking severe critical low area building collapse collapsed power lines downed road blocked traffic disrupted shelter water food medical help rescue gas leak no and in at near with of the'.split(' '),
+);
+
+/**
+ * Drop title parts that name a place no report mentioned ("Downtown Area").
+ * LLMs like to invent locations; a wrong sector sends a team to the wrong place.
+ */
+export function dropInventedPlaces(title: string, texts: string[]): string {
+  const corpus = texts.join(' ').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '');
+  const parts = title.split(/\s*(?:,|–|-|:)\s+/);
+  const kept = parts.filter((part) =>
+    part.split(/\s+/).every((w) => {
+      const word = w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+      return !word || COMMON.has(word) || corpus.includes(word);
+    }),
+  );
+  return (kept.length ? kept : parts.slice(0, 1)).join(' – ');
+}
+
 export async function summarise(input: SummaryInput): Promise<{ title: string; summary: string; ai: boolean }> {
   if (await ollamaAvailable()) {
     const reports = sample(input.members)
@@ -83,7 +132,14 @@ export async function summarise(input: SummaryInput): Promise<{ title: string; s
       const out = OutSchema.parse(
         await chatJson(SYSTEM, `FIXED NUMBERS:\n${facts(input.totals)}\n\nREPORTS:\n${reports}`, JSON_SCHEMA),
       );
-      return { ...out, ai: true };
+      let title = dropInventedPlaces(out.title, input.members.map((m) => m.text));
+      // The title must not claim people are trapped when the verified count is 0.
+      if (!input.totals.trapped_count) title = title.split(' – ').filter((p) => !/trapped/i.test(p)).join(' – ') || title;
+      return {
+        title,
+        summary: `${numbersLine(input.totals)} ${stripCounts(out.summary)}`.trim(),
+        ai: true,
+      };
     } catch (e) {
       console.warn('[summarise] LLM failed, using template:', (e as Error).message);
     }
