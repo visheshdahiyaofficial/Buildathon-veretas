@@ -149,7 +149,25 @@ phone app ──insert──▶ Supabase (Postgres + PostGIS + pgvector, RLS, pr
 - **Stable incidents.** Clusters keep their id between runs (matched by member overlap), so a coordinator's "team dispatched" status survives re-clustering, and only areas whose members changed are re-summarised.
 - **Works without the cloud AI and without signal.** If Ollama is down, a keyword extractor and topic vectors keep the pipeline running; phones queue reports offline.
 
-**Live dashboard (demo data, AI summaries by local Ollama):** https://crisispulse-umber.vercel.app · **Help form (no app install):** https://crisispulse-umber.vercel.app/report
+### Demo
+| | Link |
+|---|---|
+| Command dashboard (live while the Mac's AI server and tunnel run; falls back to demo data) | https://crisispulse-umber.vercel.app |
+| Help form for anyone, no install | https://crisispulse-umber.vercel.app/report |
+| Android app (APK, 101 MB, built with EAS) | https://expo.dev/artifacts/eas/xh998uB-7I9trAPRPHu4IQjNbKyZkAM0W1qkXSIHPLg.apk |
+
+| Help form QR | Android APK QR |
+|---|---|
+| <img src="docs/qr-help-form.png" width="180" alt="QR code for the help form"> | <img src="docs/qr-android-apk.png" width="180" alt="QR code for the Android APK"> |
+
+**Incident map:** heat map, incident areas by severity, the lone trapped person in Sector 56 kept visible.
+![Command dashboard map](docs/dashboard-map.jpg)
+
+**One incident:** a live report sent from a phone, AI situation report with verified numbers, individual reports.
+![Incident detail](docs/dashboard-incident.jpg)
+
+**Help form (phone browser):**
+<img src="docs/help-form.jpg" width="300" alt="Help form on a phone">
 
 ### How to run it
 
