@@ -54,7 +54,11 @@ function sample(members: SummaryInput['members'], max = 15) {
 }
 
 export function templateSummary({ totals: t }: SummaryInput): { title: string; summary: string } {
-  const what = t.hazards.length ? list(t.hazards.slice(0, 2)) : LABELS[t.disaster_type];
+  const what = t.hazards.length
+    ? list(t.hazards.slice(0, 2))
+    : t.needs.length
+      ? `${list(t.needs.slice(0, 2))} needed`
+      : `${LABELS[t.disaster_type]} reports`;
   const title = `${what}${t.trapped_count ? ' – people trapped' : t.injured_count ? ' – injuries' : ''}`;
   const parts = [
     `${t.report_count} reports describe ${what.toLowerCase()} in this area (radius ~${t.radius_m} m).`,

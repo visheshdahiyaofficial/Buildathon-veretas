@@ -49,8 +49,16 @@ function countBefore(text: string, nouns: string): number {
   return best;
 }
 
+/** Drop negated phrases so "no injuries" or "nobody trapped" don't count. */
+function stripNegations(text: string): string {
+  return text.replace(
+    /\b(no|nobody|no one|not|none|without)\s+(?:\w+\s+){0,2}?(injur\w*|hurt|damage|trapped|stuck|fire|bleeding)\b/g,
+    ' ',
+  );
+}
+
 export function keywordExtract(raw: string): Extraction {
-  const text = raw.toLowerCase();
+  const text = stripNegations(raw.toLowerCase());
   const hazards = (Object.keys(HAZARD_WORDS) as Hazard[]).filter((h) => HAZARD_WORDS[h].test(text));
   const needs = (Object.keys(NEED_WORDS) as Need[]).filter((n) => NEED_WORDS[n].test(text));
 
@@ -73,7 +81,7 @@ export function keywordExtract(raw: string): Extraction {
   const people = countBefore(text, 'people|persons|of us|families|residents|family members') || null;
 
   let urgency = 2;
-  if (/safe|minor|no damage|all fine|felt (the )?(shaking|tremor)/.test(text)) urgency = 1;
+  if (/safe|minor|no damage|all fine|okay|tremor|felt (the )?shaking|no injur|nobody hurt/.test(raw.toLowerCase())) urgency = 1;
   if (needs.length || hazards.length) urgency = 3;
   if (injured > 0 || hazards.includes('fire') || hazards.includes('gas_leak')) urgency = 4;
   if (trapped > 0 || /unconscious|not breathing|dying|critical/.test(text)) urgency = 5;
@@ -98,10 +106,10 @@ const TOPICS: Record<string, RegExp> = {
   fire: /fire|flame|smoke|burning|blaze|cylinder|explosion|sparking/,
   flood: /flood|water rising|submerged|waterlog|deep water|boat/,
   medical: /injur|bleed|hospital|doctor|ambulance|medic|wounded|patients|stretcher|blood/,
-  shelter: /shelter|camp|tent|blanket|food|ration|hungry|sleeping outside|park/,
-  road: /road|bridge|highway|traffic|crack|blocked|flyover/,
+  shelter: /shelter|\bcamp|\btents?\b|blanket|food|ration|hungry|sleeping|\bpark\b|toilet/,
+  road: /\broads?\b|bridge|highway|traffic|flyover|pillar|chowk/,
   school: /school|students|classroom|teacher/,
-  power: /power|electric|wire|transformer|blackout/,
+  power: /power|electric|\bwires?\b|transformer|blackout/,
   safe: /safe|fine|okay|minor|no damage|felt|shaking|tremor|scared/,
 };
 const DIM = 256;
