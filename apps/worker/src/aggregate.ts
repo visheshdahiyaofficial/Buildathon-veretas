@@ -10,6 +10,8 @@ export interface Member {
   about: 'self' | 'others';
   reported_at: string;
   x: Extraction;
+  /** Raw text, used to spot re-sends of the same message. */
+  text?: string;
 }
 
 export interface Totals {
@@ -35,6 +37,19 @@ export interface Totals {
 /** Reports within this distance AND this similar are treated as the same people. */
 export const DUPLICATE_METERS = 40;
 export const DUPLICATE_SIMILARITY = 0.8;
+/** Near-identical text from a bit further away is still a re-send (phone GPS drifts tens of metres). */
+export const RESEND_METERS = 150;
+export const RESEND_WORD_OVERLAP = 0.8;
+
+const words = (t: string) => new Set(t.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2));
+
+/** Share of words two messages have in common (Jaccard). 1 = same message. */
+export function wordOverlap(a: string, b: string): number {
+  const A = words(a), B = words(b);
+  let inter = 0;
+  for (const w of A) if (B.has(w)) inter++;
+  return inter / (A.size + B.size - inter || 1);
+}
 
 /**
  * Group reports that almost certainly describe the same people: sent from
@@ -47,10 +62,13 @@ export function duplicateGroups(members: Member[]): number[][] {
   for (let i = 0; i < members.length; i++) {
     for (let j = i + 1; j < members.length; j++) {
       const a = members[i], b = members[j];
-      if (
-        haversine(a.lat, a.lng, b.lat, b.lng) <= DUPLICATE_METERS &&
-        cosine(a.vec, b.vec) >= DUPLICATE_SIMILARITY
-      ) {
+      const d = haversine(a.lat, a.lng, b.lat, b.lng);
+      const sim = cosine(a.vec, b.vec);
+      const resend = d <= RESEND_METERS && !!a.text && !!b.text && wordOverlap(a.text, b.text) >= RESEND_WORD_OVERLAP;
+      // Same spot + same topic + some shared wording. When unsure we keep them
+      // separate: over-counting trapped people is safer than missing someone.
+      const sameSpot = d <= DUPLICATE_METERS && sim >= DUPLICATE_SIMILARITY && (!a.text || !b.text || wordOverlap(a.text, b.text) >= 0.3);
+      if (sameSpot || resend) {
         parent[find(i)] = find(j);
       }
     }

@@ -13,7 +13,7 @@ const X = (o: Partial<Extraction> = {}): Extraction => ({
   hazards: [], needs: [], urgency: 2, summary_line: '', ...o,
 });
 const M = (id: string, lat: number, lng: number, text: string, about: 'self' | 'others', x: Partial<Extraction>): Member => ({
-  id, lat, lng, vec: keywordEmbed(text), disaster_type: 'earthquake', about, reported_at: '2026-11-18T10:00:00Z', x: X(x),
+  id, lat, lng, vec: keywordEmbed(text), disaster_type: 'earthquake', about, reported_at: '2026-11-18T10:00:00Z', x: X(x), text,
 });
 const P = (id: string, lat: number, lng: number, text: string, trapped = 0) => ({
   id, lat, lng, vec: keywordEmbed(text), urgency: trapped ? 5 : 2, trapped,
@@ -74,6 +74,7 @@ describe('aggregation (no double counting)', () => {
     const ms = [
       M('a1', 28.4669, 77.0641, fam, 'self', { trapped_count: 2, children_count: 1 }),
       M('a2', 28.46691, 77.0641, fam, 'self', { trapped_count: 2, children_count: 1 }), // same family again
+      M('a3', 28.4675, 77.0641, fam, 'self', { trapped_count: 2, children_count: 1 }), // same family, GPS drifted ~65 m
       M('b', 28.4675, 77.0650, 'We are 3 people stuck in the basement', 'self', { trapped_count: 3 }),
     ];
     const t = aggregate(ms);
